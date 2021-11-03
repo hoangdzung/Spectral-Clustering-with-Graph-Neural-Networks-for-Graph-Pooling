@@ -21,10 +21,11 @@ from tqdm import tqdm
 
 from utils import citation
 from utils.misc import sp_matrix_to_sp_tensor_value, product_dict
+import sys 
 
-np.random.seed(0)  # for reproducibility
+np.random.seed(int(sys.argv[1]))  # for reproducibility
 
-PLOTS_ON = True
+PLOTS_ON = False
 ITER = 10000
 plt.set_cmap('nipy_spectral')
 VERBOSE = False
@@ -39,8 +40,8 @@ log_dir = init_logging()  # Create log directory and file
 
 # Tunables
 tunables = OrderedDict([
-    ('dataset', ['cora']),  # 'cora', 'citeseer', 'pubmed', 'cloud', or 'synth'
-    ('method', ['mincut_pool']),  # 'mincut_pool', 'diff_pool'
+    ('dataset', [sys.argv[2]]),  # 'cora', 'citeseer', 'pubmed', 'cloud', or 'synth'
+    ('method', [sys.argv[3]]),  # 'mincut_pool', 'diff_pool'
     ('H_', [None]),
     ('n_channels', [16]),
     ('learning_rate', [5e-4])
@@ -135,8 +136,7 @@ for T in product_dict(tunables):
 
         # Fit layer
         tr_feed_dict = {X_in: X,
-                        A_in: sp_matrix_to_sp_tensor_value(A_norm),
-                        S_in: y}
+                        A_in: sp_matrix_to_sp_tensor_value(A_norm)}
         layer_out = []
         nmi_out = []
         best_loss = np.inf
@@ -214,31 +214,31 @@ for T in product_dict(tunables):
             plt.savefig('logs/grid_mincut.pdf', bbox_inches='tight', pad_inches=0)
         plt.show()
 
-    # Spectral clustering
-    sc = spectral_clustering(A, n_clusters=n_clust, eigen_solver='arpack')
-    P['homo_score_sc'] = homogeneity_score(y, sc)
-    P['complete_score_sc'] = completeness_score(y, sc)
-    P['v_score_sc'] = v_measure_score(y, sc)
+    # # Spectral clustering
+    # sc = spectral_clustering(A, n_clusters=n_clust, eigen_solver='arpack')
+    # P['homo_score_sc'] = homogeneity_score(y, sc)
+    # P['complete_score_sc'] = completeness_score(y, sc)
+    # P['v_score_sc'] = v_measure_score(y, sc)
 
-    print('Spectral Clust - HOMO: {:.3f}, CS: {:.3f}, NMI: {:.3f}'
-          .format(P['homo_score_sc'], P['complete_score_sc'], P['v_score_sc']))
+    # print('Spectral Clust - HOMO: {:.3f}, CS: {:.3f}, NMI: {:.3f}'
+    #       .format(P['homo_score_sc'], P['complete_score_sc'], P['v_score_sc']))
 
-    if df_out is None:
-        df_out = pd.DataFrame([P])
-    else:
-        df_out = pd.concat([df_out, pd.DataFrame([P])])
-    df_out.to_csv(log_dir + 'results.csv', index=False)
+    # if df_out is None:
+    #     df_out = pd.DataFrame([P])
+    # else:
+    #     df_out = pd.concat([df_out, pd.DataFrame([P])])
+    # df_out.to_csv(log_dir + 'results.csv', index=False)
 
-    if PLOTS_ON:
-        if P['dataset'] == 'synth':
-            plt.scatter(X[:, 0], X[:, 1], c=sc)
-            plt.title('Spectral clustering')
-            plt.show()
-        if P['dataset'] == 'cloud':
-            fig, ax = plt.subplots(1, 1, figsize=(3, 3))
-            G.plot_signal(sc, vertex_size=30, plot_name='', colorbar=False, ax=ax)
-            ax.set_xticks([])
-            ax.set_yticks([])
-            plt.tight_layout()
-            plt.savefig('logs/grid_spectral.pdf', bbox_inches='tight', pad_inches=0)
+    # if PLOTS_ON:
+    #     if P['dataset'] == 'synth':
+    #         plt.scatter(X[:, 0], X[:, 1], c=sc)
+    #         plt.title('Spectral clustering')
+    #         plt.show()
+    #     if P['dataset'] == 'cloud':
+    #         fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    #         G.plot_signal(sc, vertex_size=30, plot_name='', colorbar=False, ax=ax)
+    #         ax.set_xticks([])
+    #         ax.set_yticks([])
+    #         plt.tight_layout()
+    #         plt.savefig('logs/grid_spectral.pdf', bbox_inches='tight', pad_inches=0)
     K.clear_session()
