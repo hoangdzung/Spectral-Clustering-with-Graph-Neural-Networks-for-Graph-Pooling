@@ -22,7 +22,7 @@ adapted to work in Spektral.
 from __future__ import absolute_import
 
 import os
-
+from sklearn.preprocessing import OneHotEncoder
 import networkx as nx
 import numpy as np
 import requests
@@ -58,6 +58,9 @@ def load_data(dataset_name='cora', normalize_features=True):
     :return: the citation network in numpy format, with train, test, and
     validation splits for the targets and masks.
     """
+    if dataset_name == 'wiki':
+        return load_wiki(normalize_features)
+        
     if dataset_name not in AVAILABLE_DATASETS:
         raise ValueError('Available datasets: {}'.format(AVAILABLE_DATASETS))
 
@@ -138,3 +141,25 @@ def download_data(dataset_name):
         req = requests.get(data_url + f_name)
         with open(DATA_PATH + dataset_name + '/' + f_name, 'wb') as out_file:
             out_file.write(req.content)
+
+def load_wiki(normalize_features=True):
+
+    G = nx.read_edgelist('./wiki/edgelist.txt', nodetype=int)
+    adj=nx.adjacency_matrix(G).toarray()
+
+    U, S, Vh = np.linalg.svd(adj)
+    features = S*U
+    features = features[:,:128]   
+    if normalize_features:
+        print('Pre-processing node features')
+        features = preprocess_features(features)
+
+    labels_ = np.genfromtxt('./wiki/labels.txt')
+    labels_dict = {labels_[i][0]: labels_[i][1] for i in range(labels_.shape[0])}
+    labels = []
+    for i, node in enumerate(G.nodes()):
+        labels.append([labels_dict[node]])
+    labels=np.array(labels)
+    onehot_labels = OneHotEncoder().fit_transform(labels).toarray()
+
+    return adj, features, None, None, None, None, None, None, onehot_labels
